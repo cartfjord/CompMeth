@@ -11,7 +11,6 @@ The present document specifies several numerical functions for testing of digita
 @defgroup _taus 
 @ingroup numerical Tausworthe Uniform Random Variable Generator.*/
 
-
 #include <time.h>
 
 unsigned int s0, s1, s2, b;
@@ -43,8 +42,7 @@ void set_taus_seed() {
 
 }
 
-#ifdef MAIN
-
+/*
 main() {
 
   unsigned int i,rand;
@@ -58,7 +56,4 @@ main() {
 
   }
 }
-#endif MAIN
-
-  
-  
+*/

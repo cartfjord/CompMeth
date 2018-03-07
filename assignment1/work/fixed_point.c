@@ -1,8 +1,10 @@
+
 #include <stdint.h>
 //Q15 multiply
 // x and y are 16-bit integers (Q15)
-#define FIX_MPY(x,y)  ((int16_t)(((int32_t)x * (int32_t)y)>>15))
-
+int16_t FIX_MPY(int16_t x, int16_t y){
+  return ((int16_t)(((int32_t)x * (int32_t)y)>>15));
+}
 
 //25-bit by 18-bit multiply, with output scaled to 25-bits, Q24xQ17
 // x is 25-bits stored as 32, y is 18-bits stored as 32

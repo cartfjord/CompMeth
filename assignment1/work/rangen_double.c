@@ -1,6 +1,9 @@
+
 #include <stdio.h>
 #include <math.h>
 #include <stdint.h>
+#include <time.h>
+#include <stdlib.h>
 
 static uint32_t seed, iy, ir[98];
 /*
