@@ -1,3 +1,4 @@
+#include <stdint.h>
 //Q15 multiply
 // x and y are 16-bit integers (Q15)
 #define FIX_MPY(x,y)  ((int16_t)(((int32_t)x * (int32_t)y)>>15))
