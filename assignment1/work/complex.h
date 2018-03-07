@@ -12,6 +12,6 @@ struct complex16
 
 struct complex32
 {
-  int r;
-  int i;
+  int32_t r;
+  int32_t i;
 };
