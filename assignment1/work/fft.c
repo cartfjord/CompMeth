@@ -322,14 +322,15 @@ void QAM_input(struct complex *data, double amp, int32_t N, int32_t Nu, int8_t M
 void fft_distortion_test(int32_t N,                // dimension of FFT under test
                          int8_t test,              // type of test
                          double input_dB,          // strength of input
-                         uint8_t *scale,            // pointr to scaling schedule
-                         double *maxSNR,           // pointer best signal-to-noise ratio
-                         uint8_t *maxscale,         // pointer to best scaling schedule
+                         uint8_t *scale,           // pointr to scaling schedule
+                         double *maxSNR_16,        // pointer best signal-to-noise ratio 16 bit vector
+                         double *maxSNR_32,        // pointer best signal-to-noise ratio 32 bit vector
+                         uint8_t *maxscale,        // pointer to best scaling schedule
                          struct complex *data,     // pointer to floating point data vector
                          struct complex16 *data16, // pointer to Q15 data vector
                          struct complex32 *data32) // pointer to Q17 data vector
 {
-  double mean_in = 0.0, mean_error = 0.0, SNR;
+  double mean_in = 0.0, mean_error_16 = 0.0, mean_error_32 = 0.0, SNR_16, SNR_32;
   int32_t i;
 
   for (i = 0; i < N; i++){
@@ -375,25 +376,39 @@ void fft_distortion_test(int32_t N,                // dimension of FFT under tes
     data[i].i /= sqrt(N);
   }
   bit_r4_reorder(data, N);
-
+  
   // Do Q15 FFT
   radix4_fixed_Q15(data16, N, scale, 0);
   bit_r4_reorder_fixed_Q15(data16, N, scale[6]);
 
+  // Do Q24 FFT
+  radix4_fixed_Q24xQ17(data32, N, scale, 0);
+  bit_r4_reorder_fixed_Q17(data32, N);
+
+
   // Compute Distortion statistics
-  mean_error = 0.0;
+  mean_error_16 = 0.0;
+  mean_error_32 = 0.0;
+
   mean_in = 0.0;
   for (i = 0; i < N; i++){
     mean_in += data[i].r * data[i].r + data[i].i * data[i].i;
-    mean_error += pow((data[i].r - ((double)data16[i].r / 32767.0)), 2) + pow((data[i].i - ((double)data16[i].i / 32767.0)), 2);
+    mean_error_16 += pow((data[i].r - ((double)data16[i].r / 32767.0)), 2) + pow((data[i].i - ((double)data16[i].i / 32767.0)), 2);
+    mean_error_32 += pow((data[i].r - ((double)data32[i].r / 32767.0)), 2) + pow((data[i].i - ((double)data32[i].i / 32767.0)), 2);
   }
 
-  SNR = 10 * log10(mean_in / mean_error);
+  SNR_16 = 10 * log10(mean_in / mean_error_16);
+  SNR_32 = 10 * log10(mean_in / mean_error_32);
   // printf("%d %d %d %d %d %d %d : %f\n",scale[0],scale[1],scale[2],scale[3],scale[4],scale[5],scale[6],SNR);
-  if (SNR > *maxSNR){
-    *maxSNR = SNR;
+  
+  if (SNR_16 > *maxSNR_16){
+    *maxSNR_16 = SNR_16;
     memcpy(maxscale, scale, 7);
   }
+  if (SNR_32 > *maxSNR_32){
+    *maxSNR_32 = SNR_32;
+  }
+
 }
 
 #define SCALE64 0x0006
@@ -406,7 +421,7 @@ int main(int argc, char *argv[]){
   int32_t N, radix = 4, test;
   int32_t i;
   uint8_t scale[7], maxscale[7], MAXSHIFT;
-  double maxSNR, input_dB;
+  double maxSNR_16, maxSNR_32, input_dB;
   struct complex *data;
   struct complex16 *data16;
   struct complex32 *data32;
@@ -466,7 +481,7 @@ int main(int argc, char *argv[]){
   }
 
   //for(int run = 0; run < 100; run++){
-    printf("res_%d = [ \n", N);
+    printf("res_%d_%d = [ \n", N, test);
 
     for (input_dB = -40; input_dB < 0; input_dB+=0.1){
 
@@ -494,7 +509,9 @@ int main(int argc, char *argv[]){
         scale[i] = 0;
       }
 
-      maxSNR = -1000;
+      maxSNR_16 = -1000;
+      maxSNR_32 = -1000;
+
       switch (N)
       {
       case 4096:
@@ -507,10 +524,10 @@ int main(int argc, char *argv[]){
                   for (scale[5] = 0; scale[5] <= MAXSHIFT - scale[0] - scale[1] - scale[2] - scale[3] - scale[4]; scale[5]++)
                   {
                     scale[6] = MAXSHIFT - scale[0] - scale[1] - scale[2] - scale[3] - scale[4] - scale[5];
-                    fft_distortion_test(N, test, input_dB, scale, &maxSNR, maxscale, data, data16, data32);
+                    fft_distortion_test(N, test, input_dB, scale, &maxSNR_16, &maxSNR_32, maxscale, data, data16, data32);
                   }
-        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
-        printf("%f, %f;\n", input_dB, maxSNR);
+        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR_16, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
+        printf("%f, %f, %f;\n", input_dB, maxSNR_16, maxSNR_32);
         break;
 
       case 1024:
@@ -521,10 +538,10 @@ int main(int argc, char *argv[]){
                 for (scale[4] = 0; scale[4] <= MAXSHIFT - scale[0] - scale[1] - scale[2] - scale[3]; scale[4]++)
                 {
                   scale[6] = MAXSHIFT - scale[0] - scale[1] - scale[2] - scale[3] - scale[4];
-                  fft_distortion_test(N, test, input_dB, scale, &maxSNR, maxscale, data, data16, data32);
+                  fft_distortion_test(N, test, input_dB, scale, &maxSNR_16, &maxSNR_32, maxscale, data, data16, data32);
                 }
-        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
-        printf("%f, %f;\n", input_dB, maxSNR);
+        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR_16, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
+        printf("%f, %f, %f;\n", input_dB, maxSNR_16, maxSNR_32);
         break;
       case 256:
 
@@ -534,10 +551,10 @@ int main(int argc, char *argv[]){
               for (scale[3] = 0; scale[3] <= MAXSHIFT - scale[0] - scale[1] - scale[2]; scale[3]++)
               {
                 scale[6] = MAXSHIFT - scale[0] - scale[1] - scale[2] - scale[3];
-                fft_distortion_test(N, test, input_dB, scale, &maxSNR, maxscale, data, data16, data32);
+                fft_distortion_test(N, test, input_dB, scale, &maxSNR_16, &maxSNR_32, maxscale, data, data16, data32);
               }
-        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
-        printf("%f, %f;\n", input_dB, maxSNR);
+        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR_16, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
+        printf("%f, %f, %f;\n", input_dB, maxSNR_16, maxSNR_32);
         break;
 
       case 64:
@@ -547,10 +564,10 @@ int main(int argc, char *argv[]){
             for (scale[2] = 0; scale[2] <= MAXSHIFT - scale[0] - scale[1]; scale[2]++)
             {
               scale[6] = MAXSHIFT - scale[0] - scale[1] - scale[2];
-              fft_distortion_test(N, test, input_dB, scale, &maxSNR, maxscale, data, data16, data32);
+              fft_distortion_test(N, test, input_dB, scale, &maxSNR_16, &maxSNR_32, maxscale, data, data16, data32);
             }
-        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
-        printf("%f, %f;\n", input_dB, maxSNR);
+        //printf("%f, %f, %% Optimum Scaling : %d %d %d %d %d %d %d\n", input_dB, maxSNR_16, maxscale[0], maxscale[1], maxscale[2], maxscale[3], maxscale[4], maxscale[5], maxscale[6]);
+        printf("%f, %f, %f;\n", input_dB, maxSNR_16, maxSNR_32);
         break;
       }
       
