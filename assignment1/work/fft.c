@@ -7,13 +7,11 @@
 
 #include "complex.h"
 #include "fixed_point.h"
+#include "rangen_double.h"
+#include "taus.h"
 
 #define PI 3.14159265359
 #define MAXPOW 24
-
-double gaussdouble(double, double);
-uint32_t taus();
-void randominit();
 
 int32_t pow_2[MAXPOW];
 int32_t pow_4[MAXPOW];
@@ -217,13 +215,13 @@ void radix4_fixed_Q15(struct complex16 *x, // Input in Q15 format
     bfly[2].i = SAT_ADD16( SAT_ADD16( SAT_ADD16(x[n2].i, -x[N2 + n2].i),  x[2 * N2 + n2].i), -x[3 * N2 + n2].i);
 
     bfly[3].r = SAT_ADD16( SAT_ADD16( SAT_ADD16(x[n2].r, -x[N2 + n2].i), -x[2 * N2 + n2].r),  x[3 * N2 + n2].i);
-    bfly[3].i = SAT_ADD16( SAT_ADD16( SAT_ADD16(x[n2].i,  x[N2 + n2].r),  x[2 * N2 + n2].i), -x[3 * N2 + n2].r);
+    bfly[3].i = SAT_ADD16( SAT_ADD16( SAT_ADD16(x[n2].i,  x[N2 + n2].r), -x[2 * N2 + n2].i), -x[3 * N2 + n2].r);
 
     // In-place results
     for (k1 = 0; k1 < N1; k1++){
       twiddle_fixed(&W, N, (double)k1 * (double)n2);
-      x[n2 + N2 * k1].r = SAT_ADD16( FIX_MPY(bfly[k1].r, W.r), FIX_MPY(bfly[k1].i, W.i) );
-      x[n2 + N2 * k1].i = SAT_ADD16( FIX_MPY(bfly[k1].i, W.r), FIX_MPY(bfly[k1].r, W.i) );
+      x[n2 + N2 * k1].r = SAT_ADD16( (+1)*FIX_MPY(bfly[k1].r, W.r), (-1)*FIX_MPY(bfly[k1].i, W.i) );
+      x[n2 + N2 * k1].i = SAT_ADD16( (+1)*FIX_MPY(bfly[k1].i, W.r), (+1)*FIX_MPY(bfly[k1].r, W.i) );
     }
   }
 
@@ -273,13 +271,13 @@ void radix4_fixed_Q24xQ17(struct complex32 *x, // Input in Q24 format
     bfly[2].i = SAT_ADD25( SAT_ADD25( SAT_ADD25(x[n2].i, -x[N2 + n2].i),  x[2 * N2 + n2].i), -x[3 * N2 + n2].i);
 
     bfly[3].r = SAT_ADD25( SAT_ADD25( SAT_ADD25(x[n2].r, -x[N2 + n2].i), -x[2 * N2 + n2].r),  x[3 * N2 + n2].i);
-    bfly[3].i = SAT_ADD25( SAT_ADD25( SAT_ADD25(x[n2].i,  x[N2 + n2].r),  x[2 * N2 + n2].i), -x[3 * N2 + n2].r);
+    bfly[3].i = SAT_ADD25( SAT_ADD25( SAT_ADD25(x[n2].i,  x[N2 + n2].r), -x[2 * N2 + n2].i), -x[3 * N2 + n2].r);
 
     // In-place results
     for (k1 = 0; k1 < N1; k1++){
       twiddle_fixed_Q17(&W, N, (double)k1 * (double)n2);
-      x[n2 + N2 * k1].r = SAT_ADD25( FIX_MPY25by18(bfly[k1].r, W.r), FIX_MPY25by18(bfly[k1].i, W.i) );
-      x[n2 + N2 * k1].i = SAT_ADD25( FIX_MPY25by18(bfly[k1].i, W.r), FIX_MPY25by18(bfly[k1].r, W.i) );
+      x[n2 + N2 * k1].r = SAT_ADD25( (+1)*FIX_MPY25by18(bfly[k1].r, W.r), (-1)*FIX_MPY25by18(bfly[k1].i, W.i) );
+      x[n2 + N2 * k1].i = SAT_ADD25( (+1)*FIX_MPY25by18(bfly[k1].i, W.r), (+1)*FIX_MPY25by18(bfly[k1].r, W.i) );
     }
   }
 
@@ -435,6 +433,10 @@ int main(int argc, char *argv[]){
     exit(-1);
   }
 
+  //Setup random seeds
+  randominit();
+  set_taus_seed();
+  
   /** Set up power of two arrays */
   pow_2[0] = 1;
 
@@ -463,10 +465,10 @@ int main(int argc, char *argv[]){
     exit(1);
   }
 
-  for(int run = 0; run < 100; run++){
+  //for(int run = 0; run < 100; run++){
     printf("res_%d = [ \n", N);
 
-    for (input_dB = -40; input_dB < 0; input_dB++){
+    for (input_dB = -40; input_dB < 0; input_dB+=0.1){
 
       switch (N)
       {
@@ -551,9 +553,10 @@ int main(int argc, char *argv[]){
         printf("%f, %f;\n", input_dB, maxSNR);
         break;
       }
-      printf("]\n");
+      
     }//input dB
-  } //runs 
+    printf("]\n");
+  //} //runs 
   
   return 0;
 }

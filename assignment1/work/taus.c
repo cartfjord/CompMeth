@@ -1,19 +1,4 @@
-/*! \mainpage Useful Numerical Functions
-\section scope_numerical Scope
-The present document specifies several numerical functions for testing of digital communication systems.
-
--# Generation of Uniform Random Bits
--# Generation of Quantized Gaussian Random Variables
--# Generation of QAM-modulated random sequences (with provision for OFDM signal formats)
-
-@defgroup numerical
-
-@defgroup _taus 
-@ingroup numerical Tausworthe Uniform Random Variable Generator.*/
-
-#include <time.h>
-
-unsigned int s0, s1, s2, b;
+#include "taus.h"
 
 //----------------------------------------------
 //
@@ -22,7 +7,7 @@ unsigned int s0, s1, s2, b;
 */
 //
 
-unsigned int taus() {
+uint32_t taus() {
 
   b = (((s0 << 13) ^ s0) >> 19);
   s0 = (((s0 & 0xFFFFFFFE) << 12)^  b);
@@ -36,16 +21,16 @@ unsigned int taus() {
 void set_taus_seed() {
 
 
-  s0 = (unsigned int)time(NULL);// 0x1e23d852;
-  s1 = (unsigned int)time(NULL); //0x81f38a1c;
-  s2 = (unsigned int)time(NULL); //0xfe1a133e;
+  s0 = (uint32_t)time(NULL);// 0x1e23d852;
+  s1 = (uint32_t)time(NULL); //0x81f38a1c;
+  s2 = (uint32_t)time(NULL); //0xfe1a133e;
 
 }
 
 /*
 main() {
 
-  unsigned int i,rand;
+  uint32_t i,rand;
 
   set_taus_seed();
 
