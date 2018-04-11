@@ -72,7 +72,7 @@ void twiddle_fixed_Q17(struct complex32 *W, int32_t N, double stuff)
 
 void bit_r4_reorder_fixed_Q15(struct complex16 *W,
                               int32_t N,
-                              int8_t scale) // shift for output
+                              char scale) // shift for output
 {
   int32_t bits, i, j, k;
   int16_t tempr, tempi;
@@ -107,7 +107,7 @@ void bit_r4_reorder_fixed_Q15(struct complex16 *W,
 
 void bit_r4_reorder_fixed_Q17(struct complex32 *W, int32_t N){
   int32_t bits, i, j, k;
-  int16_t tempr, tempi;
+  int32_t tempr, tempi; //maybe int32_t
 
   for (i = 0; i < MAXPOW; i++){
     if (pow_2[i] == N){
@@ -182,8 +182,8 @@ void radix4(struct complex *x, int32_t N){
 
 void radix4_fixed_Q15(struct complex16 *x, // Input in Q15 format
                       int32_t N,           // Size of FFT
-                      uint8_t *scale,      // Pointer to scaling schedule
-                      uint8_t stage)       // Stage of fft
+                      char *scale,// Pointer to scaling schedule
+                      unsigned char stage) // Stage of fft
 {
   int32_t n2, k1, N1, N2;
   struct complex16 W, bfly[4];
@@ -238,7 +238,7 @@ void radix4_fixed_Q15(struct complex16 *x, // Input in Q15 format
 
 void radix4_fixed_Q24xQ17(struct complex32 *x, // Input in Q24 format
                           int32_t N,           // Size of FFT
-                          uint8_t *scale,      // Pointer to scaling schedule
+                          char *scale,      // Pointer to scaling schedule
                           uint8_t stage)       // Stage of fft
 {
   int32_t n2, k1, N1, N2;
@@ -289,7 +289,7 @@ void radix4_fixed_Q24xQ17(struct complex32 *x, // Input in Q24 format
   }
 }
 
-void QAM_input(struct complex *data, double amp, int32_t N, int32_t Nu, int8_t M){
+void QAM_input(struct complex *data, double amp, int32_t N, int32_t Nu, char M){
 
   int32_t i, rv;
   int32_t FCO = (N - (Nu >> 1)); // First non-zero carrier offset
@@ -307,7 +307,7 @@ void QAM_input(struct complex *data, double amp, int32_t N, int32_t Nu, int8_t M
 
     case 0: // QPSK
       data[(i + FCO) % N].r = ((rv & 1) ? -amp : amp) / sqrt(2.0);
-      data[(i + FCO) % N].r = (((rv >> 1) & 1) ? -amp : amp) / sqrt(2.0);
+      data[(i + FCO) % N].i = (((rv >> 1) & 1) ? -amp : amp) / sqrt(2.0);
       break;
     case 1: // 16QAM
       data[(i + FCO) % N].r = (2 * (rv & 3) - 3) * amp / sqrt(10);
@@ -320,12 +320,12 @@ void QAM_input(struct complex *data, double amp, int32_t N, int32_t Nu, int8_t M
 }
 
 void fft_distortion_test(int32_t N,                // dimension of FFT under test
-                         int8_t test,              // type of test
+                         char test,                // type of test
                          double input_dB,          // strength of input
-                         uint8_t *scale,           // pointr to scaling schedule
+                         char *scale,              // pointr to scaling schedule
                          double *maxSNR_16,        // pointer best signal-to-noise ratio 16 bit vector
                          double *maxSNR_32,        // pointer best signal-to-noise ratio 32 bit vector
-                         uint8_t *maxscale,        // pointer to best scaling schedule
+                         char *maxscale,           // pointer to best scaling schedule
                          struct complex *data,     // pointer to floating point data vector
                          struct complex16 *data16, // pointer to Q15 data vector
                          struct complex32 *data32) // pointer to Q17 data vector
@@ -420,7 +420,7 @@ int main(int argc, char *argv[]){
 
   int32_t N, radix = 4, test;
   int32_t i;
-  uint8_t scale[7], maxscale[7], MAXSHIFT;
+  char scale[7], maxscale[7], MAXSHIFT;
   double maxSNR_16, maxSNR_32, input_dB;
   struct complex *data;
   struct complex16 *data16;
@@ -483,7 +483,7 @@ int main(int argc, char *argv[]){
   //for(int run = 0; run < 100; run++){
     printf("res_%d_%d = [ \n", N, test);
 
-    for (input_dB = -40; input_dB < 0; input_dB+=0.1){
+    for (input_dB = -40; input_dB < 0; input_dB+=0.5){
 
       switch (N)
       {

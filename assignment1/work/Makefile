@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -O3
+CFLAGS = -O3 -march=haswell
 
 # Utility routines
 UTIL_OBJS += taus.o fixed_point.o rangen_double.o
